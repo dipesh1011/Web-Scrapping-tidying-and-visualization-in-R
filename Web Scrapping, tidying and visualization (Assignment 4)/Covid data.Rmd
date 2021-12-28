@@ -1,0 +1,98 @@
+---
+title: "Web Scrapping, wrangling and visualization (Assignment 4)"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(rvest)
+library(dplyr)
+wiki_link <- "https://en.wikipedia.org/wiki/COVID-19_pandemic_in_Nepal"
+wiki_page <- read_html(wiki_link)
+tables <- wiki_page%>%html_table(fill=TRUE)
+covid_table <- wiki_page%>%html_nodes("table")%>%.[16]%>%html_table()%>%.[[1]]
+head(covid_table)
+```
+```{r}
+names(covid_table)=paste(names(covid_table),covid_table[1,],sep="_")
+covid_table = covid_table[-1,]
+covid_table <- covid_table[,-14]
+str(covid_table)
+```
+
+```{r}
+colnames(covid_table)
+```
+```{r}
+names(covid_table)[names(covid_table)=="Date_Date"]="Date"
+names(covid_table)[names(covid_table)=="Confirmed cases_Total"]="Confirmed_Cases_Total"
+names(covid_table)[names(covid_table)=="Confirmed cases_New"]="Confirmed_Cases_New"
+names(covid_table)[names(covid_table)=="Confirmed cases_Active"]="Confirmed_Cases_Active"
+names(covid_table)[names(covid_table)=="RT-PCR tests_Total"]="PCR_Total"
+names(covid_table)[names(covid_table)=="RT-PCR tests_New"]="PCR_New"
+names(covid_table)[names(covid_table)=="TPR_TPR"]="TPR"
+names(covid_table)[names(covid_table)=="RR_RR"]="RR"
+names(covid_table)[names(covid_table)=="CFR_CFR"]="CFR"
+str(covid_table)
+```
+
+
+```{r}
+covid_table$Confirmed_Cases_New=gsub('[+]','',covid_table$Confirmed_Cases_New)
+covid_table$Recoveries_New=gsub('[+]','',covid_table$Recoveries_New)
+covid_table$Deaths_New=gsub('[+]','',covid_table$Deaths_New)
+covid_table$PCR_New=gsub('[+]','',covid_table$PCR_New)
+
+covid_table$TPR = gsub('[%]','',covid_table$TPR)
+covid_table$RR = gsub('[%]','',covid_table$RR)
+covid_table$CFR = gsub('[%]','',covid_table$CFR)
+head(covid_table)
+```
+
+```{r}
+covid_table$Confirmed_Cases_Total = as.integer(covid_table$Confirmed_Cases_Total)
+covid_table$Confirmed_Cases_New = as.integer(covid_table$Confirmed_Cases_New)
+covid_table$Confirmed_Cases_Active = as.integer(covid_table$Confirmed_Cases_Active)
+covid_table$Recoveries_Total = as.integer(covid_table$Recoveries_Total)
+covid_table$Recoveries_New = as.integer(covid_table$Recoveries_New)
+covid_table$Deaths_Total = as.integer(covid_table$Deaths_Total)
+covid_table$Deaths_New = as.integer(covid_table$Deaths_New)
+covid_table$PCR_Total = as.integer(covid_table$PCR_Total)
+covid_table$PCR_New = as.integer(covid_table$PCR_New)
+covid_table$TPR = as.numeric(covid_table$TPR)
+covid_table$RR = as.numeric(covid_table$RR)
+covid_table$CFR = as.numeric(covid_table$CFR)
+#covid_table$Ref = as.character(covid_table$Ref)
+str(covid_table)
+```
+
+```{r}
+date2 = seq(as.Date('2020-1-23'),by='days',length.out=495)
+covid_table = cbind(covid_table,date2)
+colnames(covid_table)
+str(covid_table)
+```
+
+```{r}
+plot(covid_table$date2,covid_table$Deaths_New)
+```
+
+```{r}
+plot(covid_table$date2,covid_table$Deaths_New,ylim = range(0:250))
+```
+
+```{r}
+library(smooth)
+sma = sma(covid_table$Deaths_New,h=14,silent=FALSE)
+summary(sma)
+forecast(sma)
+
+plot(forecast(sma),main="SMA(2) Forecast",ylab="Daily Deaths")
+```
+
+
